@@ -1,0 +1,58 @@
+﻿@using PublishActivity.Data.Models;
+
+@foreach (var state in States.GroupBy(g => g.StructuralPartIdPartNavigation.IdPart))
+{
+	<div class="card">
+		<h5 class="card-header">@state.First().StructuralPartIdPartNavigation.NamePart</h5>
+		<div class="card-body">
+			<h5 class="card-title">
+				Автор(-ы):
+				@foreach (var s in state.GroupBy(g => g.AuthorU.LastName))
+				{
+					@(s.First().AuthorU.LastName + " ") @(s.First().AuthorU.FirstName+" ") @(s.First().AuthorU.Patronymic+"; ")
+				}
+			</h5>
+			<p class="card-text">
+				Язык публикации: @if (state.First().StructuralPartIdPartNavigation.IdLanguage is not null)
+				{
+					@db.Languages.Where(w => w.IdLanguage == state.First().StructuralPartIdPartNavigation.IdLanguage).First().NameLang
+				}
+				else
+				{
+					@("Не указан")
+				}
+				<br />
+				Страницы(начальная, конечная, общее число): @(state.First().StructuralPartIdPartNavigation.PageBg+", "+state.First().StructuralPartIdPartNavigation.PageEnd+", "+state.First().StructuralPartIdPartNavigation.PageCount)
+				<br />
+				Год: @state.First().StructuralPartIdPartNavigation.EditionIdEdtNavigation.Year
+				<br />
+				Издание: @state.First().StructuralPartIdPartNavigation.EditionIdEdtNavigation.NameEdt
+				<br />
+				DOI: @state.First().StructuralPartIdPartNavigation.EditionIdEdtNavigation.DoiEd
+				<br />
+			
+			</p>
+			@if (state.First().StructuralPartIdPartNavigation.UrlArt is null)
+			{
+				<a href="#" class="btn btn-primary disabled">Ссылка на публикацию</a>
+			}
+			else
+			{
+				<a href="@state.First().StructuralPartIdPartNavigation.UrlArt" class="btn btn-primary">Ссылка на публикацию</a>
+			}
+		</div>
+	</div>
+}
+@code {
+	[Parameter]
+	public List<AuthorPubl> States { get; set; }
+	public BasePpsContext db = new BasePpsContext();
+	public List<IGrouping<int, AuthorPubl>> AllStates = new List<IGrouping<int, AuthorPubl>>();
+
+	protected override void OnInitialized()
+	{
+		StateHasChanged();
+		AllStates = States.GroupBy(g => g.StructuralPartIdPartNavigation.IdPart).ToList();
+		base.OnInitialized();
+	}
+}

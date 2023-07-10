@@ -1,0 +1,119 @@
+﻿@page "/ImpactFactorUpdate"
+
+<div class="form-group">
+	<label>Введите ISSN</label>
+	<div class="input-group">
+		<div class="input-group-prepend">
+			<span class="input-group-text">ISSN</span>
+		</div>
+		<input type="text"
+			   class="form-control @(_hasFindingError ? "is-invalid" : "")"
+			   placeholder="ISSN"
+		@bind="@ImpactFactor.Issn"
+		@bind:event="oninput"
+			   required
+			   list="list"
+			   disabled="@CheckDisable()">
+
+
+		@if (_editions?.Any() ?? false)
+		{
+			<datalist id="list">
+				@foreach (var edition in _editions.Where(edition => edition.Issn.Contains(ImpactFactor.Issn)).GroupBy(g => g.Issn).Take(5))
+				{
+					<option value="@edition.First().Issn">@edition.First().NameEdt</option>
+				}
+			</datalist>
+		}
+		@if (_hasFindingError)
+		{
+			<div class="invalid-feedback">
+				Данные об импакт-факторе не найдены
+			</div>
+		}
+	</div>
+	@if (!_isIssnCorrect)
+	{
+		<div style="width: 100%; margin-top: 0.25rem; font-size: .875em; color: #dc3545;">
+			Введите корректный ISSN
+		</div>
+	}
+</div>
+
+<div class="form-group mt-3">
+	<button class="btn btn-primary" @onclick="async EventCallback => { await FindAndUpdateAsync(); }" disabled="@CheckDisable()">Найти</button>
+</div>
+
+<div class="form-group mt-3">
+	<button class="btn btn-primary" @onclick="async EventCallback => { await UpdateAllAsync(); }" disabled="@(CheckDisable() || !_canUpdateAll)">Обновить все</button>
+</div>
+
+@if (!_canUpdateAll)
+{
+	<div class="form-group mt-3">
+		<label>Обновление недоступно, потому что отсутсвует подключение к базе данных</label>
+	</div>
+}
+@if (ImpactFactor.Values.Any())
+{
+	<a href="@ImpactFactor.HtmlLink" class="btn btn-primary">Ссылка на scimagojr</a>
+	<a class="form-control btn btn-success" href="/downloadIMP">Загрузить данные</a>
+	<h2>@ImpactFactor.EditionName</h2>
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th scope="col">Год</th>
+				<th scope="col">Импакт-фактор</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var impactFactor in ImpactFactor.Values)
+			{
+				<tr>
+					<th scope="row">@impactFactor.Key</th>
+					<td>@impactFactor.Value</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@if (_isFindStart)
+{
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+}
+
+@if (_isUpdateStart)
+{
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+	<div class="progress" style="height: 20px;">
+		<div class="progress-bar" role="progressbar" style="width: @(ProgressBar);" aria-valuenow="@_progress" aria-valuemin="0" aria-valuemax="100"></div>
+	</div>
+	<p>@_progressMessage</p>
+}
+
+@if (_errorEditions.Any())
+{
+	<p>Данные для журналов не были найдены:</p>
+	@foreach (var edition in _errorEditions)
+	{
+		<p>@(edition.Name + " " + edition.Issn)</p>
+
+		<div class="mb-3">
+			<label for="exampleFormControlTextarea1" class="form-label">Введите данные об импакт-факторе в формате json</label>
+			<textarea class="form-control" id="exampleFormControlTextarea1" rows="20" @bind="@edition.Json" @bind:event="oninput" disabled="@edition.IsUpdated"></textarea>
+		</div>
+		<div class="form-group mb-3">
+			<button
+				class="btn btn-primary"
+				@onclick="async EventCallback => { await UpdateByJson(edition.Json, edition.Issn, edition); }"
+				disabled="@(string.IsNullOrWhiteSpace(edition.Json) || CheckDisable() || edition.IsUpdated)">
+				@(CheckDisable() ? "Дождитесь окончиания обновления" : "Обновить")
+			</button>
+		</div>
+	}
+}

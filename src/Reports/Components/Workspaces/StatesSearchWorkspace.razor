@@ -1,0 +1,49 @@
+﻿@page "/Search"
+@using PublishActivity.Data.Models;
+
+<div class="form-group">
+	<select class="form-select" @bind="FilterChanged" title="Filters">
+		<option value="Select" selected disabled="disabled">(Выберите фильтр)</option>
+		@foreach (var filter in Filters)
+		{
+			<option value="@filter">@filter</option>
+		}
+	</select>
+	<br />
+</div>
+	@if (FilterChanged == Filters.ElementAt(0))
+	{
+		<AuthorFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(1))
+	{
+		<YearFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(2))
+	{
+		<DoiFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(3))
+	{
+		<IsbnFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(4))
+	{
+		<IssnFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(5))
+	{
+		<NamePartFilter />
+	}
+	else if (FilterChanged == Filters.ElementAt(6))
+	{
+		<CountryFilter />
+	}
+
+@code
+{
+	public BasePpsContext db = new BasePpsContext();
+	private List<string> Filters = new List<string> { "Автор", "Год", "DOI", "ISBN", "ISSN", "Название", "Язык" };
+	public string FilterChanged { get; set; }
+}
+

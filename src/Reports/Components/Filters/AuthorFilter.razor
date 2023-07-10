@@ -1,0 +1,117 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using PublishActivity.Data.Models;
+<div class="form-group">
+	<label>Введите имя автора и выберите из подсказки</label>
+	<div class="input-group">
+		<input @bind="@AuthorsSelect" @bind:event="oninput" type="text" list="list" class="form-control" />
+		<datalist id="list">
+			@foreach (var a in Authors.Where(c =>
+c.FirstName.ToUpper().Contains(AuthorsSelect.ToUpper()) ||
+c.LastName.ToUpper().Contains(AuthorsSelect.ToUpper()) ||
+c.Patronymic.ToUpper().Contains(AuthorsSelect.ToUpper())).Take(5))
+			{
+				<option value=" @a.LastName @a.FirstName @a.Patronymic"></option>
+			}
+		</datalist>
+	</div>
+	<div class="form-group">
+		@if (IsFind)
+		{
+			<button class="btn btn-outline-dark" @onclick="Find" disabled>Найти</button>
+		}
+		else
+		{
+			<button class="btn btn-outline-dark" @onclick="Find">Найти</button>
+		}
+	</div>
+</div>
+@if (IsFind)
+{
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+}
+@if (AllStates.Count() != 0 && Exception == "")
+{
+	<State States="AllStates" />
+}
+else
+{
+	<h2>@Exception</h2>
+}
+@code {
+	public BasePpsContext db = new BasePpsContext();
+	public string AuthorsSelect = "";
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+	public string Exception = "";
+	public bool IsFind = false;
+	private List<AuthorPubl> AuthorPubls = new List<AuthorPubl>();
+	private List<Author> Authors = new List<Author>();
+
+	protected override void OnInitialized()
+	{
+		IsFind = true;
+		AuthorPubls = db.AuthorPubls.Include(i => i.StructuralPartIdPartNavigation)
+		.Include(i => i.AuthorU)
+		.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+		.ToList();
+		Authors = db.Authors.ToList();
+		IsFind = false;
+	}
+
+	public async void FindAsync()
+	{
+		IsFind = true;
+		await Task.Run(() => Find());
+	}
+	public void Find()
+	{
+		int? UID = null;
+		try
+		{
+			UID = db.Authors.Where(w =>
+			AuthorsSelect.Contains(w.FirstName) &&
+			AuthorsSelect.Contains(w.LastName) &&
+			AuthorsSelect.Contains(w.Patronymic)).FirstOrDefault()?.Uid;
+		}
+		catch
+		{
+			IsFind = false;
+			Exception = "Статьи или автор не найдены";
+		}
+
+		if (UID is not null)
+		{
+			var t = db.AuthorPubls
+		   .Include(i => i.AuthorU)
+		   .Include(i => i.StructuralPartIdPartNavigation)
+		   .Where(w => w.AuthorUid == UID)
+		   .ToList();
+			@*AllStates = db.AuthorPubls
+				.Include(i => i.AuthorU)
+				.Include(i => i.StructuralPartIdPartNavigation)
+				.Where(w => w.AuthorUid == UID || t.Exists(e => e.StructuralPartIdPart == w.StructuralPartIdPart))
+				.ToList();*@
+			AllStates = new List<AuthorPubl>();
+			foreach (var i in t)
+			{
+				foreach (var k in AuthorPubls)
+				{
+					if (k.StructuralPartIdPart == i.StructuralPartIdPart)
+					{
+						AllStates.Add(k);
+					}
+				}
+			}
+			Exception = "";
+		}
+		else
+		{
+			Exception = "Автор не найден";
+		}
+		IsFind = false;
+	}
+
+
+
+}

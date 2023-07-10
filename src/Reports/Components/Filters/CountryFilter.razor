@@ -1,0 +1,38 @@
+﻿@using PublishActivity.Data.Models;
+@using Reports.Components
+<div class="form-group">
+	<label>Выберите язык из списка</label>
+	<select class="form-control" @bind="Country">
+		<option selected disabled>Язык</option>
+		@foreach (var language in db.Languages)
+		{
+			<option>@language.NameLang</option>
+		}
+	</select>
+</div>
+<div class="form-group">
+	<button class="btn btn-dark" @onclick="Find">Найти</button>
+</div>
+@if (AllStates.Count() != 0)
+{
+	<State States="AllStates" />
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string Country { get; set; }
+
+	public void Find()
+	{
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.IdLanguageNavigation.NameLang == Country)
+			.ToList();
+
+	}
+}

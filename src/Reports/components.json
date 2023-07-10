@@ -1,0 +1,26 @@
+[
+	{
+		"Icon": "bar-chart-steps",
+		"Title": "Поиск статей",
+		"Description": "Поиск статей по фильтрам",
+		"PageURL": "Search"
+	},
+	{
+		"Icon": "check-all",
+		"Title": "Импакт-фактор",
+		"Description": "Работа с импакт-фактором",
+		"PageURL": "ImpactFactorUpdate"
+	},
+	{
+		"Icon": "window",
+		"Title": "Отчеты",
+		"Description": "Составление отчетов",
+		"PageURL": "Reports"
+	},
+	{
+		"Icon": "window",
+		"Title": "Отчеты по фильтрам",
+		"Description": "Составление отчетов по фильтрам",
+		"PageURL": "ReportFilters"
+	}
+]

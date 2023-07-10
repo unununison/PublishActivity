@@ -1,17 +1,60 @@
-﻿@inherits LayoutComponentBase
+﻿@*@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+	<div class="page">
+		<div class="sidebar">
+			<NavMenu />
+		</div>
 
-    <div class="main">
-        <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
-        </div>
+		<div class="main">
+			<div class="top-row px-4">
+				<a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+			</div>
 
-        <div class="content px-4">
-            @Body
-        </div>
-    </div>
+			<div class="content px-4">
+				@Body
+			</div>
+		</div>
+	</div>
+*@
+@inherits LayoutComponentBase
+@*<div class="page">
+
+		<div class="main">
+
+			<div class="content px-4">
+				@Body
+			</div>
+		</div>
+	</div>
+*@
+@*<div class="container" style="background-color: white;">
+		<div class="row justify-content-md-center" style="margin: 10px;">
+			@Body
+		</div>
+	</div>*@
+@* <div class="container">
+	<div class="row">
+		<div class="col">
+		</div>
+		<div class=col-8>
+			@Body
+		</div>
+		<div class="col">
+		</div>
+	</div>
+</div> *@
+
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-sm-auto bg-light sticky-top p-0 border-end">
+			<NavMenu ComponentsInfo="@componentsInfo" />
+		</div>
+		<div class="col-sm p-0 min-vh-100 position-relative d-flex flex-column">
+			<div class="container position-absolute px-3 py-3 h-100">
+				@Body
+			</div>
+		</div>
+	</div>
 </div>
+
+

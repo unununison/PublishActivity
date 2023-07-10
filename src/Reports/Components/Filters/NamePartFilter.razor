@@ -1,0 +1,32 @@
+﻿@using PublishActivity.Data.Models;
+<input @bind="@Theme" @bind:event="oninput" type="text" list="list" />
+<datalist id="list">
+    @foreach (var d in db.StructuralParts.Where(w => w.NamePart.ToUpper().Contains(Theme.ToUpper())).Take(5))
+    {
+        <option value="@d.NamePart"></option>
+    }
+</datalist>
+<button class="btn btn-dark" @onclick="Find">Найти</button>
+@if (AllStates.Count() != 0)
+{
+    <State States="AllStates" />
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string Theme = "";
+
+	public void Find()
+	{
+		var tmp = Theme.Split(' ').ToList();
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.NamePart.ToUpper().Contains(Theme.ToUpper()))
+			.ToList();
+	}
+}

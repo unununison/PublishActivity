@@ -1,0 +1,25 @@
+﻿<h3>Отчет за @Year год</h3>
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th scope="col">Пукнт отчета</th>
+			<th scope="col">Значение</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var rep in Reports)
+		{
+			<tr>
+				<th scope="row">@rep.Key</th>
+				<td>@rep.Value</td>
+			</tr>
+		}
+	</tbody>
+</table>
+@code {
+
+	[Parameter]
+	public Dictionary<string, string> Reports { get; set; }
+	[Parameter]
+	public string Year { get; set; }
+}

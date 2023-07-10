@@ -1,0 +1,40 @@
+﻿@using PublishActivity.Data.Models;
+<div class="form-group">
+	<label>Введите DOI и выберите из подсказки</label>
+	<div class="input-group">
+		<input @bind="@DOI" @bind:event="oninput" type="text" list="list" class="form-control"/>
+		<datalist id="list">
+			@foreach (var d in db.Editions.Where(w => w.DoiEd.Contains(DOI)).Take(5))
+			{
+				<option value="@d.DoiEd"></option>
+			}
+		</datalist>
+	</div>
+</div>
+<div class="form-group">
+	<button class="btn btn-dark" @onclick="Find">Найти</button>
+</div>
+@if (AllStates.Count() != 0)
+{
+	<State States="AllStates" />
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string DOI { get; set; }
+
+	public void Find()
+	{
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.EditionIdEdtNavigation.DoiEd == DOI)
+			.ToList();
+
+	}
+}
+

@@ -1,0 +1,40 @@
+﻿@using PublishActivity.Data.Models;
+@using Reports.Components
+@using Microsoft.EntityFrameworkCore
+
+<input @bind="@YearSelect" @bind:event="oninput" type="text" list="list" />
+<button class="btn-dark" @onclick="FindAsync">Найти</button>
+@if (AllStates.Count() != 0)
+{
+	<State States="AllStates" />
+}
+@if (IsFind)
+{
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string YearSelect;
+	public bool IsFind = false;
+	public async Task FindAsync()
+	{
+		IsFind = true;
+		await Task.Run(() => Find());
+	}
+	public void Find()
+	{
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.EditionIdEdtNavigation.Year == YearSelect)
+			.ToList();
+		IsFind = false;
+	}
+}

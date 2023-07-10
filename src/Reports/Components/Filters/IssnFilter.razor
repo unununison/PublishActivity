@@ -1,0 +1,39 @@
+﻿@using PublishActivity.Data.Models;
+<input @bind="@ISSN" @bind:event="oninput" type="text" list="list" class=""/>
+<datalist id="list">
+	@foreach (var d in Editions.Where(w => w.First().Issn != null && w.First().Issn.Contains(ISSN)).Take(5))
+	{
+		<option value="@d.First().Issn">@d.First().NameEdt</option>
+	}
+</datalist>
+<button class="btn btn-dark" @onclick="Find">Найти</button>
+@if (AllStates.Count() != 0)
+{
+	<State States="AllStates" />
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string ISSN = "";
+
+	private List<IGrouping<string, Edition>> Editions = new List<IGrouping<string, Edition>>();
+
+	protected override void OnInitialized()
+	{
+		var Issn = db.Editions.Where(w => w.Issn != null).ToList();
+		Editions = Issn.GroupBy(g => g.Issn).ToList();
+	}
+
+	public void Find()
+	{
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.EditionIdEdtNavigation.Issn == ISSN)
+			.ToList();
+	}
+}

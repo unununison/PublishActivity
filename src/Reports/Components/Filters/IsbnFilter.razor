@@ -1,0 +1,38 @@
+﻿@using PublishActivity.Data.Models;
+<div class="form-group">
+	<label>Введите ISBN и выберите из подсказки</label>
+	<div class="input-group">
+		<input @bind="@ISBN" @bind:event="oninput" type="text" list="list" class="form-control" />
+		<datalist id="list">
+			@foreach (var d in db.Editions.Where(w => w.Isbn.Contains(ISBN)).Take(5))
+			{
+				<option value="@d.Isbn"></option>
+			}
+		</datalist>
+	</div>
+	<div class="form-group">
+		<button class="btn btn-dark" @onclick="Find">Найти</button>
+	</div>
+</div>
+@if (AllStates.Count() != 0)
+{
+	<State States="AllStates" />
+}
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+
+	public List<AuthorPubl> AllStates = new List<AuthorPubl>();
+
+	public string ISBN { get; set; }
+
+	public void Find()
+	{
+		AllStates = db.AuthorPubls
+			.Include(i => i.AuthorU)
+			.Include(i => i.StructuralPartIdPartNavigation)
+			.Include(i => i.StructuralPartIdPartNavigation.EditionIdEdtNavigation)
+			.Where(w => w.StructuralPartIdPartNavigation.EditionIdEdtNavigation.Isbn == ISBN)
+			.ToList();
+	}
+}

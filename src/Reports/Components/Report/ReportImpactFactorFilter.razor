@@ -1,0 +1,264 @@
+﻿@using PublishActivity.Data;
+@using System.Reflection;
+
+@page "/ReportFilters"
+
+<form>
+	<div class="mb-3 form-check">
+		<input type="checkbox" class="form-check-input" id="exampleCheck1" @onclick="SelectImpactFactor">
+		<label class="form-check-label" for="exampleCheck1">Выбрать импакт-фактор</label>
+	</div>
+	@if (_filters.IsImpactFactorSelected)
+	{
+		<label>Введите год</label>
+		<div class="input-group mb-3">
+			<span class="input-group-text">от:</span>
+			<select class="form-control" @bind="@_filters.LowerBoundImpactFactorYear">
+				@foreach (var year in _viewModel.ImpactFactorYears)
+				{
+					<option value="@year" selected="@(year == _viewModel.ImpactFactorYears.First())">@year</option>
+				}
+			</select>
+			<span class="input-group-text">до:</span>
+			<select class="form-control" @bind="@_filters.UpperBoundImpactFactorYear">
+				<option selected disabled>Год</option>
+				@foreach (var year in _viewModel.ImpactFactorYears.Where(x => Convert.ToInt32(x) >= Convert.ToInt32(_filters.LowerBoundImpactFactorYear)))
+				{
+					<option value="@year" selected="@(year == _filters.UpperBoundImpactFactorYear)">@year</option>
+				}
+			</select>
+		</div>
+	}
+
+	<div class="mb-3">
+		<label>Выберите реферативную базу из списка</label>
+		<select class="form-select" @bind-value="@_filters.AbstractBase" @bind-value:event="oninput">
+			@foreach (var abstractBase in _viewModel.AbstractBases)
+			{
+				<option value="@abstractBase" selected="@(abstractBase == AbstractBase.All)">
+					@(abstractBase.GetType().GetField(abstractBase.ToString())!.GetCustomAttribute<AbstractBaseNameAttribute>()!.Name)
+				</option>
+			}
+		</select>
+	</div>
+
+	<label>Введите диапазон лет</label>
+	<div class="input-group mb-3">
+		<span class="input-group-text">от:</span>
+		<select class="form-control" @bind="@_filters.LowerBoundYear">
+			<option selected @onclick="@(EventCallback => { _filters.LowerBoundYear = null; })">Выберите нижнюю границу года</option>
+			@foreach (var year in _viewModel.Years)
+			{
+				<option value="@year">@year</option>
+			}
+		</select>
+		<span class="input-group-text">до:</span>
+		<select class="form-control" @bind="@_filters.UpperBoundYear">
+			<option selected @onclick="@(EventCallback => { _filters.UpperBoundYear = null; })">Выберите верхнюю границу года</option>
+			@foreach (var year in _viewModel.Years)
+			{
+				<option value="@year">@year</option>
+			}
+		</select>
+	</div>
+
+	<label>Выберите язык публикации из списка</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.LanguageId">
+			<option selected value="-1">Выберите язык</option>
+			@foreach (var language in _viewModel.Languages.Where(x => !string.IsNullOrWhiteSpace(x.NameLang1)))
+			{
+				<option value="@language.IdLanguage">@language.NameLang1</option>
+			}
+		</select>
+	</div>
+
+	<label>Введите автора</label>
+	<div class="mb-3">
+		<input type="text" class="form-control" @bind="@_filters.InputAuthor" @bind:event="oninput" list="list" />
+		<datalist id="list">
+			@foreach (var author in _viewModel.Authors.Where(x => x.FirstName.Contains(_filters.InputAuthor ?? string.Empty, StringComparison.InvariantCultureIgnoreCase) || x.LastName.Contains(_filters.InputAuthor ?? string.Empty, StringComparison.InvariantCultureIgnoreCase) || x.Patronymic.Contains(_filters.InputAuthor ?? string.Empty, StringComparison.InvariantCultureIgnoreCase)).Take(5))
+			{
+				<option value="@author.LastName @author.FirstName @author.Patronymic"></option>
+			}
+		</datalist>
+	</div>
+
+	<label>Введите диапазон возрастов авторов</label>
+	<div class="input-group mb-3">
+		<span class="input-group-text">от:</span>
+		<select class="form-control" @bind="@_filters.LowerBoundAge">
+			<option selected @onclick="@(EventCallback => { _filters.LowerBoundAge = null; })">Выберите нижнюю границу возраста</option>
+			@foreach (var age in _viewModel.Ages)
+			{
+				<option value="@age">@age</option>
+			}
+		</select>
+		<span class="input-group-text">до:</span>
+		<select class="form-control" @bind="@_filters.UpperBoundAge">
+			<option selected @onclick="@(EventCallback => { _filters.UpperBoundAge = null; })">Выберите верхнюю границу возраста</option>
+			@foreach (var age in _viewModel.Ages)
+			{
+				<option value="@age">@age</option>
+			}
+		</select>
+	</div>
+
+	<label>Выберите тип публикации</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.PublicationTypeId" @bind:event="oninput">
+			<option value="-1">Выберите тип публикации</option>
+			@foreach (var type in _viewModel.PublicationTypes)
+			{
+				<option value="@type.IdTypePart">@type.NamePart1</option>
+			}
+		</select>
+	</div>
+
+	<label>Выберите тип издания</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.PublishType">
+			<option selected @onclick="@(EventCallback => { _filters.PublishType = null; })">Выберите тип издания</option>
+			@foreach (var publishType in _viewModel.PublishTypes)
+			{
+				<option value="@publishType">@publishType</option>
+			}
+		</select>
+	</div>
+
+	<label>Введите ISSN издания</label>
+	<div class="mb-3">
+		<input type="text" class="form-control" list="issns" @bind="@_filters.Issn" @bind:event="oninput" />
+		<datalist id="issns">
+			@foreach (var issn in _viewModel.Issns.Where(x => !string.IsNullOrWhiteSpace(x.Item1) && x.Item1.Contains(_filters.Issn ?? string.Empty, StringComparison.InvariantCultureIgnoreCase)).Take(5))
+			{
+				<option value="@issn.Item1">@issn.Item2</option>
+			}
+		</datalist>
+	</div>
+
+	<label>Введите ISBN издания</label>
+	<div class="mb-3">
+		<input type="text" class="form-control" list="isbns" @bind="@_filters.Isbn" @bind:event="oninput" />
+		<datalist id="isbns">
+			@foreach (var issn in _viewModel.Isbns.Where(x => !string.IsNullOrWhiteSpace(x.Item1) && x.Item1.Contains(_filters.Isbn ?? string.Empty, StringComparison.InvariantCultureIgnoreCase)).Take(5))
+			{
+				<option value="@issn.Item1">@issn.Item2</option>
+			}
+		</datalist>
+	</div>
+
+	<label>Выберите тип издательства</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.SprFormatInfoId">
+			<option selected value="-1">Выберите тип издательства</option>
+			@foreach (var sprFormatInfo in _viewModel.SprFormatInfos)
+			{
+				<option value="@sprFormatInfo.TypeEd">@sprFormatInfo.NameNlnform</option>
+			}
+		</select>
+	</div>
+
+	<label>Выберите кафедру</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.OfficeDepartId">
+			<option selected @onclick="@(EventCallback => { _filters.OfficeDepartId = null; })">Выберите кафедру</option>
+			@foreach (var officeDepart in _viewModel.OfficeDeparts)
+			{
+				<option value="@officeDepart.KodOffice">@officeDepart.NameOffice</option>
+			}
+		</select>
+	</div>
+
+	<label>Введите диссовет</label>
+	<div class="mb-3">
+		<input type="text" class="form-control" @bind="@_filters.DifSovetId" @bind:event="oninput" list="list6" />
+		<datalist id="list6">
+			@foreach (var disSovet in _viewModel.DifSovets.Where(x => x.Ds.Contains(_filters.DifSovetId ?? string.Empty, StringComparison.InvariantCultureIgnoreCase)).DistinctBy(x => x.Ds).Take(5))
+			{
+				<option value="@disSovet.Ds"></option>
+			}
+		</datalist>
+	</div>
+
+	<label>Выберите тематику</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.IdThematic">
+			<option selected value="-1">Выберите тематику</option>
+			@foreach (var sprThematic in _viewModel.SprThematics)
+			{
+				<option value="@sprThematic.IdThematic">@sprThematic.NameThematic</option>
+			}
+		</select>
+	</div>
+
+	<label>Выберите уровень издания</label>
+	<div class="mb-3">
+		<select class="form-control" @bind="@_filters.LevelEdition">
+			<option selected @onclick="@(EventCallback => { _filters.LevelEdition = null; })">Выберите уровень издания</option>
+			@foreach (var level in _viewModel.LevelEditions)
+			{
+				<option value="@level.NameLevEdition">@level.NameLevEdition</option>
+			}
+		</select>
+	</div>
+
+	<button type="button" class="btn btn-primary" @onclick="async EventCallback => { await GetReport(); }">Составить отчет</button>
+	<button type="button" class="btn btn-primary" @onclick="EventCallback => { Clear(); }">Очистить</button>
+</form>
+
+@if (_impactFactorStructuralParts is { } && _impactFactorStructuralParts.Any())
+{
+	<div class="accordion" id="accordionExample">
+		<div class="card">
+			<div class="card-header" id="headingOne">
+				<h5 class="mb-0">
+					<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+						Суммарный импакт-фактор @_impactFactor;
+					</button>
+				</h5>
+			</div>
+			<div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+				<div class="card-body">
+					@foreach (var publication in _impactFactorStructuralParts)
+					{
+						<PublicationComponent StructuralPart="publication" />
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+@if (_structuralParts is { })
+{
+	<div class="accordion" id="accordionExample">
+		<div class="card">
+			<div class="card-header" id="headingOne">
+				<h5 class="mb-0">
+					<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+						Количество статей @_structuralParts.Count()
+					</button>
+				</h5>
+			</div>
+			@if (_citations.HasValue)
+			{
+				<p>Количество цитирований: </p>
+			}
+			<div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+				<div class="card-body">
+					@foreach (var publication in _structuralParts)
+					{
+						<PublicationComponent StructuralPart="publication" />
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
+@if (_isLoading)
+{
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+}

@@ -1,4 +1,4 @@
-﻿<div class="top-row pl-4 navbar navbar-dark">
+﻿@* <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Reports</a>
     <button class="navbar-toggler" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
@@ -8,18 +8,18 @@
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <ul class="nav flex-column">
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
+            <NavLink class="nav-link" href="Search" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Поиск статей
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="Reports">
+                <span class="oi oi-plus" aria-hidden="true"></span> Отчеты
             </NavLink>
         </li>
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
+            <NavLink class="nav-link" href="ImpactFactorUpdate">
+                <span class="oi oi-plus" aria-hidden="true"></span> Обновить импакт-фактор
             </NavLink>
         </li>
     </ul>
@@ -34,4 +34,38 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
-}
+} *@
+
+
+<div class="d-flex flex-column flex-shrink-0 p-3 bg-light">
+	<a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
+		<span class="text-muted fs-5 fw-bold">
+			МГТУ Отчет
+		</span>
+	</a>
+	<hr />
+	<ul class="nav nav-pills flex-column mb-auto">
+		<li>
+			<NavLink class="nav-link link-dark" href="/" Match="NavLinkMatch.All">
+				<i class="bi-house me-1" aria-hidden="true"></i>
+				Главная
+			</NavLink>
+		</li>
+		<li>
+			<hr />
+		</li>
+		@if (ComponentsInfo?.Any() ?? false)
+		{
+			@foreach (ComponentInfoDto componentInfo in ComponentsInfo)
+			{
+				<li title="@componentInfo.Description">
+					<NavLink class="nav-link link-dark" href="@componentInfo.PageURL" Match="NavLinkMatch.All">
+						<i class="bi-@componentInfo.Icon me-1" aria-hidden="true"></i>
+						@componentInfo.Title
+					</NavLink>
+				</li>
+			}
+		}
+	</ul>
+</div>
+

@@ -1,0 +1,557 @@
+﻿@page "/Reports"
+
+
+@using System.Net
+@using System.Text
+@using System.IO
+@using ExcelLibrary.SpreadSheet
+@using PublishActivity.Data.Models;
+@using PublishActivity.Services.Services.Interfaces;
+@inject IReportService _reportService
+
+@if (isButtonChange)
+{
+	<br />
+	<div class="spinner-border" role="status">
+		<span class="sr-only"></span>
+	</div>
+	<br />
+	<span>   Пожалуйста подождите...</span>
+}
+else
+{
+	<div class="card-deck">
+		<div class="card border-dark mb-3" style="max-width: 18rem;">
+			<div class="card-header bg-transparent border-dark">Отчет</div>
+			<div class="card-body text-dark">
+				<h5 class="card-title">Форма 1</h5>
+				<p class="card-text">Отчет по форме 1</p>
+			</div>
+			<div class="card-footer bg-transparent border-dark">
+				<button class="btn btn-primary" @onclick="EventCallback => { Change(1); }">Выбрать</button>
+			</div>
+		</div>
+
+		<div class="card border-dark mb-3" style="max-width: 18rem;">
+			<div class="card-header bg-transparent border-dark">Отчет</div>
+			<div class="card-body text-dark">
+				<h5 class="card-title">Форма ФСМНО</h5>
+				<p class="card-text">Отчет по форме ФСМНО</p>
+			</div>
+			<div class="card-footer bg-transparent border-dark">
+				<button class="btn btn-primary" @onclick="EventCallback => { Change(2); }">Выбрать</button>
+			</div>
+		</div>
+
+		<div class="card border-dark mb-3" style="max-width: 18rem;">
+			<div class="card-header bg-transparent border-dark">Отчет</div>
+			<div class="card-body text-dark">
+				<h5 class="card-title">Форма 2</h5>
+				<p class="card-text">Отчет по форме 2</p>
+			</div>
+			<div class="card-footer bg-transparent border-dark">
+				<button class="btn btn-primary" @onclick="EventCallback => { Change(3); }">Выбрать</button>
+			</div>
+		</div>
+
+		<div class="card border-dark mb-3" style="max-width: 18rem;">
+			<div class="card-header bg-transparent border-dark">Отчет</div>
+			<div class="card-body text-dark">
+				<h5 class="card-title">Форма общая</h5>
+				<p class="card-text">Общий отчет со всеми пунктами</p>
+			</div>
+			<div class="card-footer bg-transparent border-dark">
+				<button class="btn btn-primary" @onclick="EventCallback => { Change(4); }">Выбрать</button>
+			</div>
+		</div>
+	</div>
+	<select class="custom-select @(YearReport == null  && YearSelect == true ? "is-invalid" : "")" @bind="YearReport" title="Filters">
+		<option value="Select" selected disabled="disabled">(Выберите год)</option>
+		@foreach (var year in Years.Where(w => Convert.ToInt32(w.First().Year) < DateTime.Now.Year))
+		{
+			<option value="@year.First().Year">@year.First().Year</option>
+		}
+	</select>
+}
+
+@if (Report.Count != 0 && !isButtonChange)
+{
+
+	<h6>Время составления: @time</h6>
+	@*<button class="btn btn-success" @onclick="EventCallback => { GetExcel(FormName); }">Скачать отчет</button>*@
+	<a class="form-control btn btn-primary" href="/download">Скачать отчет</a>
+
+	<Reports.Components.Report.ReportsTable Reports="@Report" Year="@YearReport" />
+	<div style="color: aliceblue">@(Report = new Dictionary<string, string>())</div>
+}
+
+
+
+@code {
+	public BasePpsContext db = new BasePpsContext();
+	private Dictionary<string, string> Report = new Dictionary<string, string>();
+	private double ImpFact = 0;
+	private string FormName = "";
+	List<string> points = new List<string>();
+	private string YearReport { get; set; }
+	private List<IGrouping<string, TmpExport1>> Years = new List<IGrouping<string, TmpExport1>>();
+
+	protected override void OnInitialized()
+	{
+		var tmp = db.TmpExport1s.ToList();
+		Years = tmp.GroupBy(g => g.Year).ToList();
+	}
+
+	private void GetExcel(string form)
+	{
+		string file = Directory.GetCurrentDirectory() + "/Report.xls";
+		Workbook workbook = new Workbook();
+		Worksheet worksheet = new Worksheet(form);
+		int i = 1;
+		worksheet.Cells[0, 0] = new Cell("Название");
+		worksheet.Cells[0, 1] = new Cell("Значение");
+		foreach (var point in Report)
+		{
+			worksheet.Cells[i, 0] = new Cell(point.Key);
+			worksheet.Cells[i, 1] = new Cell(point.Value);
+			i++;
+		}
+		workbook.Worksheets.Add(worksheet); workbook.Save(file);
+	}
+
+
+
+	private void GetNewReport()
+	{
+
+	}
+	string time;
+	private async void GetAllPoints()
+	{
+
+		ImpFact = 0;
+		@*Report.Add(points.ElementAt(0), GetIndArticleCount().ToString());*@
+		//var tmp = db.StructuralParts.Where(w => GetIndArticleCount().Any(a => a.NameAbase == "Scopus" && a.NamePart == w.NamePart)).Count();
+		List<IGrouping<string, TmpExport1>> tmp = new List<IGrouping<string, TmpExport1>>();
+
+		var tmp1 = db.TmpExport1s.Where(w => w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в рецензируемых научных журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Scopus" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Scopus", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Web Of Science" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Web Of Science", tmp.Count().ToString());
+		//tmp = db.StructuralParts.Where(w => GetIndArticleCount().Any(a => a.NameAbase == "Web Of Science" && a.NamePart == w.NamePart)).Count();
+		//Report.Add("Опубликовано статей в Web of Science", tmp.ToString());
+		Report.Add(points.ElementAt(1), await GetImpactFactor());
+		Report.Add(points.ElementAt(2), GetCitation().ToString());
+		//Report.Add(points.ElementAt(3), GetConstruktStates().ToString());
+		//Report.Add(points.ElementAt(4), GetNonRusStates().ToString());
+		//Report.Add(points.ElementAt(5), GetSciPopStates().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameStruct == "Article" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Количество статей в журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameStruct == "Conference Paper" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Количество статей в конференциях", tmp.Count().ToString());
+		isButtonChange = false;
+
+	}
+
+	private void GetForm2()
+	{
+		List<IGrouping<string, TmpExport1>> tmp = new List<IGrouping<string, TmpExport1>>();
+
+		var tmp1 = db.TmpExport1s.Where(w => w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в рецензируемых научных журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Scopus").ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Scopus", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Web Of Science").ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Web Of Science", tmp.Count().ToString());
+		//Report.Add(points.ElementAt(0), GetIndArticleCount().ToString());
+		isButtonChange = false;
+	}
+
+	private void GetForm1()
+	{
+		//Report.Add(points.ElementAt(0), GetIndArticleCount().ToString());
+		List<IGrouping<string, TmpExport1>> tmp = new List<IGrouping<string, TmpExport1>>();
+
+		var tmp1 = db.TmpExport1s.Where(w => w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в рецензируемых научных журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Scopus" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Scopus", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Web Of Science" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Web Of Science", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameStruct == "Article" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Количество статей в журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameStruct == "Conference Paper" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Количество статей в конференциях", tmp.Count().ToString());
+
+		//Report.Add(points.ElementAt(3), GetConstruktStates().ToString());
+		Report.Add(points.ElementAt(4), GetNonRusStates().ToString());
+		//Report.Add(points.ElementAt(5), GetSciPopStates().ToString());
+		isButtonChange = false;
+	}
+
+	private void GetReport()
+	{
+		var publs = db.TmpExports.Where(x => Convert.ToInt32(x.Year) >= 2018).Where(x => (x.IdExport >= 5889 && x.IdExport <= 6575) || x.IdExport >= 14675);
+
+		var scopus = publs
+		.Where(x => x.NameAbase.ToLower() == "scopus")
+		.GroupBy(x => x.NamePart);
+		Report.Add(
+			"Количество научных публикаций (без дублирования) в изданиях, индексируемых в международных цитатно-аналитических базах данных (Scopus)",
+			scopus.Count().ToString());
+
+		var eLibrary = publs
+		.Where(x => x.NameAbase.ToLower() == "elibrary")
+		.GroupBy(x => x.NameEdt);
+		Report.Add(
+			"Количество научных публикаций (без дублирования) в изданиях, индексируемых в международных цитатно-аналитических базах данных (eLibrary)",
+			eLibrary.Count().ToString());
+
+		var scopusCitats = publs
+		.Where(x => x.NameAbase.ToLower() == "scopus")
+		.GroupBy(x => x.NamePart)
+		.Sum(x => x.Max(m => m.ValumeIndA));
+		Report.Add(
+			"Число цитирований публикаций в международных цитатно-аналитических базах данных (Scopus)",
+			scopusCitats.ToString());
+
+		var eLibraryCitats = publs
+	.Where(x => x.NameAbase.ToLower() == "elibrary")
+	.GroupBy(x => x.NameEdt)
+	.Sum(x => x.Max(m => m.ValumeIndA));
+		Report.Add(
+			"Число цитирований публикаций в международных цитатно-аналитических базах данных (eLibrary)",
+			eLibraryCitats.ToString());
+
+		var imp = publs.Where(x => x.Issn != "" && x.Issn != "0");
+		var sum = 0;
+		//var service = new Reports.Services.ImpactFactorService();
+		var cache = new Dictionary<string, Dictionary<DateTime, decimal>>();
+		foreach (var publ in imp)
+		{
+			//var dict = new Dictionary<DateTime, decimal>();
+			try
+			{
+				if (cache.ContainsKey(publ.Issn))
+				{
+
+				}
+				else
+				{
+					//var dict = service.Find(publ.Issn).Result;
+					//cache.Add(publ.Issn, dict);
+				}
+
+				var impactFactor = cache[publ.Issn].FirstOrDefault(x => x.Key.Year.ToString() == publ.Year).Value;
+				if (impactFactor is { } && impactFactor >= (decimal)0.1)
+				{
+					sum++;
+				}
+			}
+			catch (Exception ex)
+			{
+				if (!(Report.ContainsKey("Ошибка вычисления импакт-фактора для статьи " + publ.NamePart) || Report.ContainsKey("Ошибка вычисления импакт-фактора для статьи " + publ.NameEdt)))
+				{
+					if (publ.NameAbase == "scopus")
+					{
+						Report.Add("Ошибка вычисления импакт-фактора для статьи " + publ.NamePart, publ.UrlIsi);
+					}
+					else if(publ.NameAbase == "eLibrary")
+					{
+						Report.Add("Ошибка вычисления импакт-фактора для статьи " + publ.NameEdt, publ.Year);
+					}
+				}
+			}
+
+			if (sum == 27)
+			{
+				int j = 0;
+			}
+		}
+
+		Report.Add("1", sum.ToString());
+		isButtonChange = false;
+	}
+
+	private async void GetFormFSMNO()
+	{
+		ImpFact = 0;
+		//Report.Add(points.ElementAt(0), GetIndArticleCount().ToString());
+		List<IGrouping<string, TmpExport1>> tmp = new List<IGrouping<string, TmpExport1>>();
+
+		var tmp1 = db.TmpExport1s.Where(w => w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в рецензируемых научных журналах", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Scopus" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Scopus", tmp.Count().ToString());
+
+		tmp1 = db.TmpExport1s.Where(w => w.NameAbase == "Web Of Science" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+		Report.Add("Опубликовано статей в Web Of Science", tmp.Count().ToString());
+
+		Report.Add(points.ElementAt(1), await GetImpactFactor());
+		Report.Add(points.ElementAt(2), GetCitation().ToString());
+		//Report.Add(points.ElementAt(3), GetConstruktStates().ToString());
+		//Report.Add(points.ElementAt(5), GetSciPopStates().ToString());
+		Report.Add(points.ElementAt(6), GetConf().ToString());
+		isButtonChange = false;
+	}
+	private bool isButtonChange = false;
+	private bool YearSelect = false;
+	public async Task Change(int id)
+	{
+		YearSelect = true;
+		if (YearReport is not null)
+		{
+
+			DateTime StartTime = DateTime.Now;
+			Report = new Dictionary<string, string>();
+			isButtonChange = true;
+			if (id == 1)
+			{
+				FormName = "Отчет";
+				GetReport();
+			}
+			if (id == 2)
+			{
+				FormName = "Форма ФСМНО";
+				await Task.Run(() => GetFormFSMNO());
+			}
+			if (id == 3)
+			{
+				FormName = "Форма 2";
+				await Task.Run(() => GetForm2());
+			}
+			if (id == 4)
+			{
+				FormName = "Общий отчет+";
+				await Task.Run(() => GetAllPoints());
+			}
+			GetExcel(FormName);
+			TimeSpan ts = DateTime.Now.Subtract(StartTime);
+			string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+		ts.Hours, ts.Minutes, ts.Seconds,
+		ts.Milliseconds / 10);
+			time = elapsedTime;
+			StateHasChanged();
+		}
+
+	}
+
+
+
+	//Опубликовано статей в рецензируемых научных журналах
+	private List<TmpExport1> GetIndArticleCount()
+	{
+		return db.TmpExport1s.ToList();
+	}
+	//Общее количество научных, конструкторских и технологических произведений
+	private int GetConstruktStates()
+	{
+		return db.StructuralParts.Where(w => w.EditionIdEdtNavigation.IdEditionNavigation.IdEdition == 3).Count();
+	}
+	//Число статей подготовленных совместно с зарубежными организациями
+	private int GetNonRusStates()
+	{
+		List<IGrouping<string, TmpExport1>> tmp = new List<IGrouping<string, TmpExport1>>();
+
+		var tmp1 = db.TmpExport1s.Where(w => w.LanguagePart == "English" && w.NameStruct == "Article" && w.Year == YearReport).ToList();
+		tmp = tmp1.GroupBy(g => g.NamePart).ToList();
+
+		return tmp.Count();
+		//return db.StructuralParts.Where(w => w.EditionIdEdtNavigation.IdEditionNavigation.IdEdition == 2 || w.EditionIdEdtNavigation.IdEditionNavigation.IdEdition == 3).Count();
+	}
+	//Количество научно-популярных публикаций
+	private int GetSciPopStates()
+	{
+		return db.Editions.Where(w => w.SprFormatInfoTypeEdNavigation.TypeEd == 1).Count();
+	}
+	private async Task<string> GetImpactFactor()
+	{
+		var report = await _reportService.GetImpactFactor(YearReport.ToString(), YearReport.ToString());
+		return report.ImpactFactor.ToString();
+	}
+	//Совокупный импакт-фактор
+	private string GetImpFact()
+	{
+		GetImpactFactor();
+		@*
+			var StatesOneYear = new List<StructuralPart>();
+			//StatesOneYear = db.StructuralParts.Where(w => DateTime.Now.Subtract(w.DateEdA).TotalDays <= 365).ToList();
+			StatesOneYear = db.StructuralParts.Include(i => i.EditionIdEdtNavigation).Where(w => Convert.ToInt32(w.EditionIdEdtNavigation.Year) == DateTime.Now.Year - 1).ToList();
+			if (StatesOneYear is not null)
+			{
+				foreach (var state in StatesOneYear)
+				{
+					if (state.EditionIdEdtNavigation.Issn != "")
+					{
+						var t = DateTime.Now.Year - 1;
+						var tmp = Update(state.EditionIdEdtNavigation.Issn)[Convert.ToDateTime("01/01/" + t)];
+						ImpFact += tmp;
+
+					}
+				}
+			}
+			return ImpFact.ToString();*@
+		var IFactoD = new Dictionary<string, double>();
+		var tmp = db.Editions.Include(i => i.StructuralParts).Where(w => w.Year == YearReport.ToString()).ToList();
+
+		foreach (var t in tmp)
+		{
+			if (t.Issn != "")
+			{
+				var k = DateTime.Now.Year - 1;
+				if (!IFactoD.ContainsKey(t.Issn))
+				{
+					var iss = Update(t.Issn);
+					if (iss.ContainsKey(Convert.ToDateTime("01/01/" + k)))
+					{
+						var temp = iss[Convert.ToDateTime("01/01/" + k)];
+						IFactoD.Add(t.Issn, temp);
+						ImpFact += temp * t.StructuralParts.Count();
+					}
+
+				}
+				else
+				{
+					ImpFact += IFactoD[t.Issn] * t.StructuralParts.Count();
+				}
+
+			}
+		}
+		return Math.Round(ImpFact, 2).ToString();
+	}
+	//Совокупная цитируемость публикаций организации
+	private int? GetCitation()
+	{
+		@*return db.Editions.Where(w => w.Volume != null && w.Year == YearReport).Sum(s => s.Volume);*@
+		return db.TmpExport1s.Where(w => w.ValumeIndA != null && w.Year == YearReport).Sum(s => s.ValumeIndA);
+	}
+	//Число научных конференций с международным участием
+	private int GetConf()
+	{
+		return db.StructuralParts.Where(w => w.EditionIdEdtNavigation.SprFormatInfoTypeEdNavigation.TypeEd == 4 && w.IdLanguage != 1).Count();
+	}
+	protected override Task OnInitializedAsync()
+	{
+		Report = new Dictionary<string, string>();
+		points.Add("Опубликовано статей в рецензируемых научных журналах");//0
+		points.Add("Совокупный импакт-фактор журналов");//1
+		points.Add("Совокупная цитируемость публикаций организации");//2
+		points.Add("Общее количество научных, конструкторских и технологических произведений");//3
+		points.Add("Число статей, подготовленных совместно с зарубежными организациями");//4
+		points.Add("Количество научно-популярных публикаций");//5
+		points.Add("Число научных конференций с международным участием");//6
+
+		return base.OnInitializedAsync();
+	}
+
+	private Dictionary<DateTime, double> Update(string ISSN)
+	{
+		Dictionary<DateTime, double> impactFactor = new Dictionary<DateTime, double>();
+		string DownloadString = "https://www.scimagojr.com/journalsearch.php?q=" + ISSN;
+		var htmlCode = FindHtmlCode(DownloadString);
+		if (htmlCode is not null && htmlCode != "Error")
+		{
+			htmlCode = FindInputs(htmlCode, "\n<a href=\"journalsearch.php?q", '\"');
+			if (htmlCode is not null && htmlCode != "Error")
+			{
+				htmlCode = FindHtmlCode(htmlCode);
+				if (htmlCode is not null && htmlCode != "Error")
+				{
+					var impactString = "";
+					var str = "var datasjr = \"Year;SJR";
+					if (htmlCode.Contains(str))
+					{
+						for (int i = htmlCode.IndexOf(str) + str.Length; i < htmlCode.Length; i++)
+						{
+							if (htmlCode[i] == '\"' && htmlCode[i + 1] == ';')
+								break;
+							impactString += htmlCode[i];
+						}
+
+						var year_impArray = impactString.Split("\\n");
+						foreach (var year in year_impArray)
+						{
+							if (year != "")
+							{
+								var tmp = year.Split(";");
+								var date = Convert.ToDateTime("01/01/" + tmp[0]);
+								var impact = Convert.ToDouble(tmp[1].Replace('.', ','));
+								impactFactor.Add(date, impact);
+							}
+						}
+					}
+				}
+			}
+		}
+		return impactFactor;
+	}
+
+	private string FindHtmlCode(string url)
+	{
+		try
+		{
+			StringBuilder sb = new StringBuilder();
+			byte[] buf = new byte[8192];
+			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+			HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+			Stream resStream = response.GetResponseStream();
+			int count = 0;
+			do
+			{
+				count = resStream.Read(buf, 0, buf.Length);
+				if (count != 0)
+				{
+					sb.Append(Encoding.Default.GetString(buf, 0, count));
+				}
+			}
+			while (count > 0);
+			return sb.ToString();
+		}
+		catch (WebException e)
+		{
+			return "Error";
+		}
+
+	}
+	private string FindInputs(string sb, string begin, char end)
+	{
+		string tmp = "";
+
+		for (int i = sb.ToString().IndexOf(begin) + 10; i < sb.Length; i++)
+		{
+			if (sb[i] == end) break;
+			tmp += sb[i];
+		}
+		string ds = "https://www.scimagojr.com/" + tmp;
+		return ds;
+	}
+}
